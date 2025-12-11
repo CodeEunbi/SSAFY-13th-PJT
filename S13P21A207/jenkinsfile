@@ -1,0 +1,222 @@
+// jenkinsfile (프로젝트 루트)
+pipeline {
+    agent any
+
+    environment {
+        GITLAB_REPO = 'https://lab.ssafy.com/s13-bigdata-dist-sub1/S13P21A207.git'
+        MAIN_DEPLOY_PATH = '/home/ubuntu/app'
+    }
+
+    stages {
+        stage('Prepare Environment') {
+            steps {
+                script {
+                    echo "🔧 환경 준비 중..."
+
+                    sh '''
+                        # 필수 디렉토리 생성
+                        mkdir -p ${MAIN_DEPLOY_PATH}/{models/{text,image},logs/{fastapi,nginx},extension-downloads}
+                        chmod -R 755 ${MAIN_DEPLOY_PATH}
+
+                        # Docker 버전 확인
+                        docker --version
+                        docker-compose --version || echo "Docker Compose 설치 필요"
+
+                        echo "✅ 환경 준비 완료"
+                    '''
+                }
+            }
+        }
+
+        stage('Checkout') {
+            steps {
+                git branch: 'develop',
+                    credentialsId: 'gitlab-token',
+                    url: "${GITLAB_REPO}"
+            }
+        }
+
+        stage('Detect Changes') {
+            steps {
+                script {
+                    def changes = sh(
+                        script: 'git diff --name-only HEAD~1 HEAD || echo "all"',
+                        returnStdout: true
+                    ).trim().split('\n')
+
+                    // 실제 소스코드 경로 기반 변경 감지
+                    env.DEPLOY_MAIN = changes.any {
+                        it.startsWith('Service/') ||           // FastAPI 소스코드 변경
+                        it.startsWith('Infra/main-ec2/')            // 메인 EC2 인프라 변경
+                    } ? 'true' : 'false'
+
+                    env.DEPLOY_EXTENSION = changes.any {
+                        it.startsWith('Front-End/SSAFY_PJT2/') ||    // 크롬 익스텐션 소스코드 변경
+                        it.startsWith('Infra/main-ec2/')             // 메인 EC2 인프라 변경 시에도 익스텐션 재빌드
+                    } ? 'true' : 'false'
+
+                    echo "🔍 변경 감지 결과:"
+                    echo "  • 메인 EC2 배포: ${env.DEPLOY_MAIN}"
+                    echo "  • 크롬 익스텐션 배포: ${env.DEPLOY_EXTENSION}"
+                }
+            }
+        }
+
+        stage('Deploy Main EC2 (Local)') {
+            when {
+                anyOf {
+                    allOf {
+                        branch 'develop'  // develop 브랜치에서
+                        anyOf {
+                            environment name: 'DEPLOY_MAIN', value: 'true'  // 변경사항이 있거나
+                            expression { currentBuild.getBuildCauses('hudson.model.Cause$UserIdCause').size() > 0 }  // 수동 빌드
+                        }
+                    }
+                    expression { currentBuild.getBuildCauses('hudson.model.Cause$UserIdCause').size() > 0 }  // Jenkins에서 수동 빌드 시 항상 실행
+                }
+            }
+            steps {
+                script {
+                    echo "🚀 메인 EC2 로컬 배포 시작..."
+
+                    withCredentials([
+                        file(credentialsId: 'main-env-file', variable: 'MAIN_ENV')
+                    ]) {
+                        sh '''
+                            # === 강화된 디렉토리 생성 ===
+                            echo "📁 필수 디렉토리 강제 생성 중..."
+                            mkdir -p ${MAIN_DEPLOY_PATH}/{models/{text,image},logs/{fastapi,nginx},extension-downloads,data}
+                            chmod -R 755 ${MAIN_DEPLOY_PATH}
+
+                            # 디렉토리 존재 확인
+                            echo "📋 디렉토리 확인:"
+                            ls -la ${MAIN_DEPLOY_PATH}/
+
+                            # models 디렉토리 강제 생성
+                            if [ ! -d "${MAIN_DEPLOY_PATH}/models" ]; then
+                                echo "⚠️ models 디렉토리 없음 - 강제 생성"
+                                mkdir -p ${MAIN_DEPLOY_PATH}/models/{text,image}
+                                chmod -R 755 ${MAIN_DEPLOY_PATH}/models
+                            fi
+
+                            # === 파일 복사 (git 구조와 동일하게) ===
+                            # 복사 전 기존 파일들을 정리
+                            rm -rf ${MAIN_DEPLOY_PATH}/{Service,Front-End,Infra}
+
+                            # 메인 EC2에 필요한 폴더들을 내부 파일까지 완전히 복사
+                            cp -r Service ${MAIN_DEPLOY_PATH}/
+                            cp -r Front-End ${MAIN_DEPLOY_PATH}/
+                            cp -r Infra ${MAIN_DEPLOY_PATH}/
+                            cp $MAIN_ENV ${MAIN_DEPLOY_PATH}/.env
+
+                            cd ${MAIN_DEPLOY_PATH}
+                            export $(cat .env | xargs)
+
+                            # === AI 모델 파일 복사 ===
+                            echo "📥 AI 모델 파일 복사 중..."
+
+                            # 모델 서브디렉토리 생성
+                            mkdir -p models/text models/image
+                            chmod -R 755 models/
+
+                            if [ -d "Service/ai-text-service/models" ]; then
+                                cp -r Service/ai-text-service/models/* models/text/ || true
+                                echo "✅ Text 모델 복사 완료"
+                                ls -la models/text/
+                            else
+                                echo "⚠️ Text 모델 소스 디렉토리 없음"
+                            fi
+
+                            if [ -d "Service/ai-image-service/models" ]; then
+                                cp -r Service/ai-image-service/models/* models/image/ || true
+                                echo "✅ Image 모델 복사 완료"
+                                ls -la models/image/
+                            else
+                                echo "⚠️ Image 모델 소스 디렉토리 없음"
+                            fi
+
+                            # === 안전한 모델 파일 생성 ===
+                            echo "📥 기본 모델 설정 중..."
+                            if [ -d "models" ]; then
+                                echo "기본 모델 파일" > models/latest
+                                echo "✅ models/latest 파일 생성 완료"
+                            else
+                                echo "❌ models 디렉토리 생성 실패!"
+                                exit 1
+                            fi
+
+                            # === Docker 서비스 재시작 ===
+                            echo "🔄 메인 서비스 재시작 중..."
+                            docker-compose -f Infra/main-ec2/docker-compose.main.yml down || true
+                            docker-compose -f Infra/main-ec2/docker-compose.main.yml up -d --build
+
+                            echo "✅ 메인 EC2 배포 완료"
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                script {
+                    echo "🏥 헬스체크 수행 중..."
+
+                    // 메인 EC2 헬스체크
+                    sh '''
+                        if [ "${DEPLOY_MAIN}" = "true" ]; then
+                            echo "🔍 메인 EC2 FastAPI 상태 확인..."
+                            sleep 45
+
+                            # FastAPI 헬스체크
+                            for i in {1..10}; do
+                                if curl -f http://localhost:8000/health > /dev/null 2>&1; then
+                                    echo "✅ 메인 EC2 FastAPI 정상 동작"
+                                    break
+                                fi
+                                echo "⏳ FastAPI 시작 대기 중... ($i/10)"
+                                sleep 10
+                            done
+                        fi
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '🎉 모든 배포가 성공적으로 완료되었습니다!'
+            script {
+                // 성공 시 상태 확인
+                sh '''
+                    echo "📊 최종 서비스 상태:"
+                    docker ps --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}"
+                '''
+            }
+        }
+
+        failure {
+            echo '❌ 배포 실패! 로그를 확인하세요.'
+            script {
+                // 실패 시 로그 수집
+                sh '''
+                    echo "💥 메인 EC2 로그:"
+                    docker-compose -f ${MAIN_DEPLOY_PATH}/Infra/main-ec2/docker-compose.main.yml logs --tail=50 || true
+                '''
+
+            }
+        }
+
+        always {
+            // 정리 작업
+            sh '''
+                # 환경변수 파일 보안 삭제
+                rm -f ${MAIN_DEPLOY_PATH}/.env || true
+
+                # 미사용 Docker 이미지 정리 (디스크 공간 확보)
+                docker image prune -f || true
+            '''
+        }
+    }
+}

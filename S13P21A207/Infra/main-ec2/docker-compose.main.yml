@@ -1,0 +1,138 @@
+# Infra/main-ec2/docker-compose.main.yml
+# version: '3.8'
+#
+
+services:
+  # =====================================================================
+  # Jenkins 서비스 제거 (jenkins-standalone.sh 으로 사전 별도 실행 필요)
+  # =====================================================================
+
+  fastapi-ai-image-service:
+    build:
+      context: ../../Service/ai-image-service
+      dockerfile: Dockerfile
+    container_name: main-ai-image
+    ports:
+      - "127.0.0.1:8001:8000" # ← 호스트 8001 → 컨테이너 8000
+    environment:
+      - MODEL_PATH=/app/models/image/student_ft_best.keras
+      - CLASSMAP_PATH=/app/models/image/class_mapping.json
+      - THRESH_PATH=/app/models/image/thresholds.json
+      - REDIS_URL=redis://redis:6379
+      - LOG_LEVEL=INFO
+    volumes:
+      - /home/ubuntu/app/models:/app/models
+      - /home/ubuntu/app/logs/ai-image:/app/logs
+    depends_on:
+      - redis
+    networks:
+      - main-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+
+  fastapi-ai-text-service:
+    build:
+      context: ../../Service/ai-text-service
+      dockerfile: Dockerfile
+    container_name: main-ai-text
+    ports:
+      - "127.0.0.1:8002:8000" # ← 호스트 8002 → 컨테이너 8000
+    environment:
+      - AI_MODEL_PATH=/app/models
+      - REDIS_URL=redis://redis:6379
+      - LOG_LEVEL=INFO
+    volumes:
+      - /home/ubuntu/app/models:/app/models
+      - /home/ubuntu/app/logs/ai-text:/app/logs
+    depends_on:
+      - redis
+    networks:
+      - main-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+
+  redis:
+    image: redis:7-alpine
+    container_name: main-redis
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    ports:
+      - "127.0.0.1:6380:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - main-network
+    restart: unless-stopped
+
+  # extension-builder:
+  #   build:
+  #     context: ../../Front-End/SSAFY_PJT2    # Front-End 서비스 경로 (git 구조와 동일)
+  #     dockerfile: Dockerfile                  # Front-End/SSAFY_PJT2/Dockerfile 사용
+  #   container_name: main-extension-builder
+  #   volumes:
+  #     - extension-downloads:/var/www/html/downloads
+  #     - ./extension-web:/var/www/html       # nginx에서 서빙할 정적 파일
+  #   networks:
+  #     - main-network
+  #   restart: "no"                           # 빌드 완료 후 자동 종료
+  #
+
+  common-backend:
+    build:
+      context: ../../Service/common-backend
+      dockerfile: Dockerfile
+    container_name: main-backend
+    ports:
+      - "127.0.0.1:8080:8080"
+      - "0.0.0.0:9092:9092"
+    environment:
+      - FASTAPI_IMAGE_URL=http://fastapi-ai-image-service:8000  # 컨테이너명이랑 일치
+      - FASTAPI_TEXT_URL=http://fastapi-ai-text-service:8000  # 컨테이너명이랑 일치
+      - SPRING_PROFILES_ACTIVE=production
+      - REDIS_HOST=redis
+      - REDIS_PORT=6380
+      - USE_REDIS=true
+      - SOCKETIO_HOST=0.0.0.0
+      - SOCKETIO_PORT=9092
+    depends_on:
+      - redis
+    networks:
+      - main-network
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    container_name: main-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./logs/nginx:/var/log/nginx
+      - extension-downloads:/var/www/html/downloads
+      - ./extension-web:/var/www/html/extension
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro  # nginx.conf 마운트
+      # SSL 인증서 볼륨
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot
+    depends_on:
+      - fastapi-ai-image-service
+      - fastapi-ai-text-service
+      - common-backend
+    networks:
+      - main-network
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+  extension-downloads:
+
+networks:
+  main-network:
+    driver: bridge

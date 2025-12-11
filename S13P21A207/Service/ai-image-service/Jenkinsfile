@@ -1,0 +1,169 @@
+pipeline {
+  agent any
+  environment {
+    GITLAB_REPO  = 'https://lab.ssafy.com/s13-bigdata-dist-sub1/S13P21A207.git'
+    BRANCH_NAME  = 'deploy-image'
+    SERVICE_NAME = 'ai-image-service'
+    SERVICE_PORT = '8001'
+    CONTAINER_PORT = '8000'
+    CREDENTIALS_ID = 'gitlab-token'
+    DEPLOY_PATH  = '/home/ubuntu/services/image'
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        echo "🔄 ${SERVICE_NAME} 소스 체크아웃 중..."
+        git branch: "${BRANCH_NAME}", credentialsId: "${CREDENTIALS_ID}", url: "${GITLAB_REPO}"
+      }
+    }
+
+    stage('Prepare deploy dir') {
+      steps {
+        echo "📁 배포 디렉토리 준비 중..."
+        sh '''
+          set -e
+          mkdir -p ${DEPLOY_PATH}
+          chmod -R 755 ${DEPLOY_PATH}
+
+          # 기존 파일 백업 및 정리
+          rm -rf ${DEPLOY_PATH}/backup || true
+          if [ -d "${DEPLOY_PATH}/app" ]; then
+            mv ${DEPLOY_PATH}/app ${DEPLOY_PATH}/backup
+          fi
+
+          # 새 디렉토리 생성
+          mkdir -p ${DEPLOY_PATH}/app
+
+          # 내용만 복사 (중요)
+          cp -r Service/ai-image-service/. ${DEPLOY_PATH}/app/
+          chmod -R 755 ${DEPLOY_PATH}/app
+
+          # 빠른 경로 확인
+          test -f ${DEPLOY_PATH}/app/Dockerfile
+          test -f ${DEPLOY_PATH}/app/requirements.txt
+
+          echo "✅ 배포 디렉토리 준비 완료"
+        '''
+      }
+    }
+
+    stage('Build image') {
+      steps {
+        echo "🔨 ${SERVICE_NAME} Docker 이미지 빌드 중..."
+        script { env.SHA = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim() }
+        dir("${DEPLOY_PATH}/app") {
+          sh '''
+            set -e
+            docker stop ${SERVICE_NAME} || true
+            docker rm ${SERVICE_NAME} || true
+            docker rmi ${SERVICE_NAME}:latest || true
+            docker build -t ${SERVICE_NAME}:latest -t ${SERVICE_NAME}:${SHA} .
+            echo "✅ Docker 이미지 빌드 완료"
+          '''
+        }
+      }
+    }
+
+    stage('Run container') {
+      when {
+        anyOf {
+          branch ${BRANCH_NAME}  // deploy-image 브랜치에 merge 시 자동 배포
+          expression { currentBuild.getBuildCauses('hudson.model.Cause$UserIdCause').size() > 0 }  // Jenkins에서 수동 빌드 시
+        }
+      }
+      steps {
+        echo "🚀 ${SERVICE_NAME} 컨테이너 배포 중..."
+        dir("${DEPLOY_PATH}/app") {
+          sh '''
+            set -e
+            # .env 없으면 생성
+            [ -f .env ] || cat > .env <<EOF
+MODEL_PATH=./models/student_ft_best.keras
+CLASSMAP_PATH=./models/class_mapping.json
+THRESH_PATH=./models/thresholds.json
+IMG_SIZE=192
+TOPK=3
+ALLOWED_MIME=image/jpeg,image/png,image/webp,image/avif
+EOF
+            docker run -d \
+              --name ${SERVICE_NAME} \
+              --restart unless-stopped \
+              -p ${SERVICE_PORT}:${CONTAINER_PORT} \
+              --env-file .env \
+              ${SERVICE_NAME}:latest
+
+            echo "✅ 컨테이너 실행 트리거 완료"
+          '''
+        }
+      }
+    }
+
+    // ✅ 텍스트 서비스에서 사용한 Health Check 방식으로 변경
+    stage('Health Check') {
+      steps {
+        echo "🏥 ${SERVICE_NAME} 헬스체크 수행 중..."
+        sh '''
+          set -eu
+          echo "⏳ 서비스 시작 대기 중..."
+          # 짧은 워밍업(필요 시 조정)
+          sleep 10
+
+          # 컨테이너가 running 상태인지 확인 (curl 대신 docker 상태로 체크)
+          if docker ps --filter "name=${SERVICE_NAME}" --filter "status=running" --format "{{.Names}}" | grep -q "^${SERVICE_NAME}$"; then
+            echo "✅ ${SERVICE_NAME} 컨테이너 정상 실행 중!"
+
+            # Docker HEALTHCHECK를 정의해두었다면 상태도 함께 출력(없으면 none)
+            health_status=$(docker inspect --format='{{.State.Health.Status}}' ${SERVICE_NAME} 2>/dev/null || echo "none")
+            echo "Docker 헬스체크 상태: $health_status"
+
+            echo "🌐 서비스 URL: http://$(curl -s ifconfig.me):${SERVICE_PORT}"
+            echo "✅ 배포 완료 - 컨테이너가 정상 실행 중입니다"
+            exit 0
+          else
+            echo "❌ 컨테이너 실행 실패"
+            echo "---- ${SERVICE_NAME} 최근 로그 ----"
+            docker logs ${SERVICE_NAME} --tail=100 || true
+            exit 1
+          fi
+        '''
+      }
+    }
+  }
+
+  post {
+    success {
+      echo "🎉 ${SERVICE_NAME} 배포 성공!"
+      sh '''
+        echo "📊 배포 완료 상태:"
+        docker ps --filter name=${SERVICE_NAME} --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}"
+        echo "🌐 서비스 접근: http://$(curl -s ifconfig.me):${SERVICE_PORT}"
+      '''
+    }
+    failure {
+      echo "❌ ${SERVICE_NAME} 배포 실패!"
+      sh '''
+        echo "💥 실패 로그 수집 중..."
+        if docker ps -a --filter name=${SERVICE_NAME} --format "{{.Names}}" | grep -q "^${SERVICE_NAME}$"; then
+          echo "🔍 ${SERVICE_NAME} 컨테이너 로그:"
+          docker logs ${SERVICE_NAME} --tail=200 || true
+        fi
+        echo "🔍 시스템 리소스 상태:"
+        df -h
+        free -h
+        echo "🔍 Docker 상태:"
+        docker ps -a
+      '''
+    }
+    always {
+      sh '''
+        echo "🧹 정리 작업 수행 중..."
+        # (선택) .env 정리 — 이미지 서비스는 유지가 필요하면 주석 처리
+        # rm -f ${DEPLOY_PATH}/app/.env || true
+
+        docker image prune -f || true
+        echo "✅ 정리 완료"
+      '''
+    }
+  }
+}

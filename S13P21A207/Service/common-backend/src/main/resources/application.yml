@@ -1,0 +1,137 @@
+# =======================================================================================
+# 공통 프로필 섹션 (이름표가 없는 기본 설정 덩어리)
+# - 이 섹션은 모든 환경에서 항상 먼저 로드됩니다.
+# - Spring Boot가 파일을 읽을 때, 구분자(---)가 나오기 전까지의 내용이 '공통 프로필'로 취급됩니다.
+# - 여기서 정의된 설정은 기본값으로 사용되며, 활성화된 프로필(예: dev 또는 production)의 설정으로 덮어써질 수 있습니다.
+# - 프로필 결정 순서:
+#   1. Spring Boot가 이 공통 섹션을 먼저 로드합니다.
+#   2. 'spring.profiles.active' 설정을 확인하여 기본 활성 프로필을 결정합니다 (여기서는 'dev'로 지정됨).
+#   3. 활성 프로필과 맞는 섹션을 추가로 로드하고, 기존 설정을 오버라이드(덮어쓰기)합니다.
+#   4. 외부 환경 변수(예: Docker나 Jenkins에서 주입)가 가장 높은 우선순위를 가지므로, 파일 내부 설정을 덮어쓸 수 있습니다.
+# =======================================================================================
+
+# Socket.IO 및 Docker 통신 설정
+server:
+  port: 8080
+
+# Socket.IO 서버 설정
+socketio:
+  server:
+    host: ${SOCKETIO_HOST:0.0.0.0}
+    port: ${SOCKETIO_PORT:9092}
+
+# Redis 설정
+spring:
+  # 기본 활성 프로필 지정: 로컬 개발 시 'dev'를 자동으로 활성화 (매번 IntelliJ에서 설정할 필요 없음)
+  profiles:
+    active: dev  # 로컬에서 아무 설정 없이 실행하면 'dev' 프로필이 기본으로 적용됩니다. 배포 시 환경 변수로 'production'으로 덮어쓰세요.
+  application:
+    name: common-backend
+  data:
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 10
+          max-idle: 10
+          min-idle: 2
+          max-wait: 3000ms
+
+# 필터 설정
+filter:
+  use-redis: ${USE_REDIS:true}
+  session-ttl-hours: 24
+
+# 로깅 설정
+logging:
+  level:
+    backend.SSAFY_PTJ2: DEBUG
+    # JMX/RMI 로그 레벨 조정 (TRACE/DEBUG → WARN)
+    javax.management: WARN
+    sun.rmi: WARN
+    com.sun.jmx: WARN
+  pattern:
+    console: "%d{dd HH:mm:ss} - %msg%n"
+
+---
+# =======================================================================================
+# 'dev' 프로필 섹션 (로컬 개발 환경 전용 설정 덩어리)
+# - 구분자(---)로 공통 섹션과 분리됩니다.
+# - 'spring.config.activate.on-profile: dev' 이름표가 붙어 있어, 'dev' 프로필이 활성화될 때만 로드됩니다.
+# - 목적: 로컬 개발 시 편의성을 위해 localhost 기반 설정과 디버그 로그를 적용합니다.
+# - 프로필 결정 순서에서: 공통 섹션이 로드된 후, 'dev'가 활성화되면 이 섹션의 설정이 공통 설정을 오버라이드합니다.
+# - 예: socketio.server.host를 'localhost'로 덮어써서 로컬 테스트를 용이하게 합니다.
+# =======================================================================================
+
+# 로컬 개발
+spring.config.activate.on-profile: dev
+
+socketio:
+  server:
+    host: localhost
+
+spring:
+  application:
+    name: common-backend
+  data:
+    redis:
+      host: localhost
+      port: ${REDIS_PORT:6380}
+# AI 통신 클라이언트 설정값
+ai:
+  image:
+    base-url: "http://localhost:8001"
+  text:
+    base-url: "http://localhost:8002"
+  timeout-ms:  # HTTP 요청 관련 타임아웃
+    connect: 150000
+    read: 60000
+    write: 60000
+#  retry:
+#    max-attempts: 3
+#    backoff-ms: 200
+#    jitter: 0.3
+  upload:
+    max-bytes: 10485760  # 10MB
+
+logging:
+  level:
+    root: DEBUG
+  pattern: "[%d{dd'일' HH:mm:ss}][%M]=> %m%n"
+
+---
+# =======================================================================================
+# 'production' 프로필 섹션 (Docker/EC2 배포 환경 전용 설정 덩어리)
+# - 구분자(---)로 이전 섹션과 분리됩니다.
+# - 'spring.config.activate.on-profile: production' 이름표가 붙어 있어, 'production' 프로필이 활성화될 때만 로드됩니다.
+# - 목적: 배포 시 외부 접속 허용, 컨테이너 간 통신, 보안 강화 등을 위해 설정을 조정합니다.
+# - 프로필 결정 순서에서: 공통 섹션이 로드된 후, 'production'이 활성화되면 이 섹션의 설정이 공통 설정을 오버라이드합니다.
+# - 예: socketio.server.host를 '0.0.0.0'으로 덮어써서 외부 접근을 허용합니다.
+# - 배포 시: docker-compose.yml이나 Jenkins에서 SPRING_PROFILES_ACTIVE=production 환경 변수를 주입하여 이 프로필을 강제 활성화하세요.
+# =======================================================================================
+
+# Docker 프로덕션
+spring.config.activate.on-profile: production
+
+socketio:
+  server:
+    host: 0.0.0.0
+
+spring:
+  data:
+    redis:
+      host: redis  # Docker 컨테이너 간 통신: 서비스명으로 접근
+      port: 6379
+
+# AI 컨테이너 설정 (컨테이너 간 네트워크 통신)
+ai:
+  image:
+    base-url: "http://fastapi-ai-image-service:8000"    # Docker Compose 서비스명:내부포트
+  text:
+    base-url: "http://fastapi-ai-text-service:8000"     # Docker Compose 서비스명:내부포트
+
+filter:
+  use-redis: true
+
+logging:
+  level:
+    root: DEBUG

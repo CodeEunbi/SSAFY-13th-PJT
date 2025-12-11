@@ -1,0 +1,22 @@
+# FastAPI 및 웹 서버
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# 머신러닝 및 NLP
+torch==2.5.0
+transformers==4.35.2
+tokenizers==0.15.2
+
+# 데이터 처리
+numpy==1.26.4
+pandas==2.2.2
+
+# API 및 검증
+pydantic==2.5.0
+
+# 기타 유틸리티
+python-multipart==0.0.6
+
+# 한국어 문장 분리기
+kss==4.5.4
+python-mecab-ko

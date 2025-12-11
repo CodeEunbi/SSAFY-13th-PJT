@@ -1,0 +1,4 @@
+rootProject.name = "S13P21A207"
+
+// Service 하위 Gradle 모듈 포함
+include("Service:common-backend")

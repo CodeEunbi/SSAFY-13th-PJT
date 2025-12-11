@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-pretendard text-my-black;
+  }
+  body.is-options #root {
+    @apply h-full w-full;
+  }
+
+  html.is-popup,
+  body.is-popup {
+    width: 320px;
+    height: 250px;
+  }
+  body.is-popup {
+    display: grid;
+    place-items: center;
+    text-align: center;
+  }
+  body.is-popup #root {
+    @apply w-auto h-auto;
+  }
+  body.is-popup h1 {
+    margin: 0;
+  }
+
+  /* 기본 블러 처리 */
+  .blur-default {
+    filter: blur(10px);
+    transition: filter 0.2s ease;
+  }
+
+  /* 호버 시 임시로 블러 해제 */
+  .blur-default:hover {
+    filter: none;
+  }
+
+  .cv-blur-partial {
+    filter: blur(10px);
+    transition: filter 0.2s ease;
+  }
+
+  .cv-blur-partial:hover {
+    filter: none;
+  }
+
+  /* 블러 색상 */
+  .color-violence {
+    background-color: #ff524244;
+  }
+
+  .color-sexual {
+    background-color: #ff56d544;
+  }
+
+  .color-politics {
+    background-color: #a561d544;
+  }
+
+  .color-insult {
+    background-color: #39ad7d44;
+  }
+
+  .color-ad {
+    background-color: #f5d97d44;
+  }
+
+  .cv-blurred:hover {
+    filter: none !important;
+  }
+}

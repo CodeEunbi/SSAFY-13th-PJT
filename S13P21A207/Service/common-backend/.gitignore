@@ -1,0 +1,74 @@
+HELP.md
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+../.idea/
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+# 추가: IntelliJ 관련 캐시/설정
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/dictionaries
+.idea/**/libraries
+.idea/**/shelf
+.idea/**/modules.xml
+.idea/**/checkstyle-idea.xml
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+### Gradle 캐시 추가 ###
+**/.gradle/**/checksums/
+**/.gradle/**/fileHashes/
+**/.gradle/**/buildOutputCleanup/
+**/.gradle/**/gc.properties
+**/.gradle/**/nb-cache/
+
+### 빌드 산출물/리포트 ###
+**/build/tmp/
+**/build/reports/
+**/build/libs/
+**/build/classes/
+**/build/resources/
+**/build/reports/problems/
+**/build/reports/problems/problems-report.html
+**/build/tmp/bootJar/
+**/build/tmp/jar/
+MANIFEST.MF
+
+**/problems-report.html
+
+### 기타 임시 파일 ###
+*.lock
+*.ser
+*.bin
+*.log
+*.tmp
+*.swp

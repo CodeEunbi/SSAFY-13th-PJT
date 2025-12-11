@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socket.IO 연결 테스트</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>크롬 익스텐션 소켓 통신 테스트</h1>
+    <div id="log"></div>
+    <button onclick="testConnection()">연결 테스트</button>
+    <button onclick="testSettings()">설정 전송 테스트</button>
+
+    <script>
+        const log = document.getElementById('log');
+        let socket;
+
+        function addLog(message) {
+            const div = document.createElement('div');
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            log.appendChild(div);
+            console.log(message);
+        }
+
+        function testConnection() {
+            addLog('🔌 소켓 연결 시도 중...');
+
+            // 배포 환경 소켓 연결 시도
+            socket = io('https://j13a207.p.ssafy.io:9092', {
+                path: '/socket.io',
+                transports: ['websocket'],
+                reconnection: true,
+                reconnectionAttempts: 3,
+                reconnectionDelay: 1000,
+                timeout: 10000
+            });
+
+            socket.on('connect', () => {
+                addLog('✅ 소켓 연결 성공! ID: ' + socket.id);
+            });
+
+            socket.on('connect_error', (error) => {
+                addLog('❌ 소켓 연결 실패: ' + error.message);
+            });
+
+            socket.on('disconnect', () => {
+                addLog('🔌 소켓 연결 끊김');
+            });
+
+            // 서버 응답 리스너 설정
+            socket.on('setting-updated', (data) => {
+                addLog('📥 설정 업데이트 응답 받음: ' + JSON.stringify(data));
+            });
+
+            socket.on('settings-updated', (data) => {
+                addLog('📥 설정 업데이트 응답 받음: ' + JSON.stringify(data));
+            });
+
+            socket.on('error', (error) => {
+                addLog('❌ 서버 에러: ' + JSON.stringify(error));
+            });
+        }
+
+        function testSettings() {
+            if (!socket || !socket.connected) {
+                addLog('❌ 먼저 소켓 연결을 해주세요');
+                return;
+            }
+
+            const testSettings = {
+                type: 'settingsDoc',
+                settings: {
+                    serviceEnabled: true,
+                    showIcon: true,
+                    filteringEnabled: true,
+                    filterImage: {
+                        enabled: true,
+                        originalViewEnabled: true,
+                        categories: []
+                    },
+                    filterText: {
+                        enabled: true,
+                        originalViewEnabled: true,
+                        categories: []
+                    }
+                },
+                __meta: { updatedAt: new Date().toISOString() }
+            };
+
+            addLog('📤 설정 전송 중...');
+            addLog('전송 데이터: ' + JSON.stringify(testSettings));
+
+            socket.emit('settings-update', testSettings);
+        }
+
+        // 페이지 로드 시 자동 연결 시도
+        window.onload = () => {
+            testConnection();
+        };
+    </script>
+</body>
+</html>

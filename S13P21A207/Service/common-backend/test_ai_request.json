@@ -1,0 +1,23 @@
+{
+  "pageUrl": "https://test.com",
+  "textElements": [
+    {
+      "elementId": "elem_1",
+      "texts": [
+        {
+          "text": "바보야 멍청이",
+          "sIdx": 0,
+          "eIdx": 7
+        }
+      ]
+    }
+  ],
+  "textFilterCategory": {
+    "IN": true,
+    "VI": true,
+    "SE": true,
+    "AD": true,
+    "PO": true
+  },
+  "threshold": 0.5
+}

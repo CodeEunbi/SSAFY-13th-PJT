@@ -1,0 +1,17 @@
+# Python venv
+.venv/
+venv/
+*/.venv/
+
+# 임시파일
+# temp/ 디렉토리와 그 안의 모든 파일 및 하위 디렉토리를 무시
+**temp
+
+# nodejs
+**node_modules/
+
+**/.idea
+**/build
+**/out
+
+.claude

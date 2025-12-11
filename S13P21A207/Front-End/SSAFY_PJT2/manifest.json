@@ -1,0 +1,71 @@
+{
+  "name": "지킴 앤 하이드",
+  "description": "test extension",
+  "version": "1.0.0",
+  "manifest_version": 3,
+
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAw8WVlduhJpEv/3GuamqN+BMC/a7EB9bmKVCUNedWr+NLEKVKbBvMF997MTAYwpSylDl/l6HQXBzhs5lLnEfPdn+kyTPZkF2bgoX6h6K3M5N9jwWyKUnx306RGiVGBB0CwIzwUrSqx/TbhFnMfBazrwrWAGJsDR3ZKEBYWqAkUtWDUoRBXBqDDtjgefdV0Zxy+Sah/9jAsVWcU2kNe6pyZVjisbLyrhIhRUMl/VJ5IpETE44TbSY/Dhd3wedK88ot6fOr3Dj5IwlfEWk4i+ZjEf4j6j0HOec/PDrWI0FxH0JgL7KsPGyQDcNKDl2sgSp7WDkxAjDi7A9LhUMMCJDjvwIDAQAB",
+
+  "action": {
+    "default_popup": "src/pages/popup/popup.html"
+  },
+  "icons": {
+    "16": "src/assets/icons/logo.png",
+    "32": "src/assets/icons/logo.png",
+    "48": "src/assets/icons/logo.png",
+    "128": "src/assets/icons/logo.png"
+  },
+  "options_ui": {
+    "page": "src/pages/options/option.html",
+    "open_in_tab": true
+  },
+  "background": {
+    "service_worker": "src/background.ts",
+    "type": "module"
+  },
+  "permissions": ["storage", "tabs", "offscreen", "scripting"],
+
+  "host_permissions": [
+    "http://localhost:8000/*",
+    "http://127.0.0.1:9092/*",
+    "http://localhost:9092/*",
+    "https://news.naver.com/*",
+    "ws://j13a207.p.ssafy.io/*",
+    "wss://j13a207.p.ssafy.io/*",
+    "http://j13a207.p.ssafy.io/*",
+    "https://j13a207.p.ssafy.io/*",
+    "https://*/*",
+    "http://*/*",
+    "https://i.ytimg.com/*",
+    "https://*.ytimg.com/*",
+    "https://yt3.ggpht.com/*",
+    "https://imgnews.pstatic.net/*", 
+    "https://n.news.naver.com/*"     
+  ],
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content/contentScript.ts"],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+    
+  ],
+
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "src/assets/icons/logo.png",
+        "offscreen.html",
+        "offscreen.*"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "content_security_policy": {
+
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'none'; connect-src 'self' http://127.0.0.1:9092 ws://127.0.0.1:9092 http://localhost:9092 ws://localhost:9092 http://j13a207.p.ssafy.io:9092 ws://j13a207.p.ssafy.io:9092 https://j13a207.p.ssafy.io wss://j13a207.p.ssafy.io https://j13a207.p.ssafy.io:9092 wss://j13a207.p.ssafy.io:9092;"
+  
+  }
+}
