@@ -1,0 +1,27 @@
+package backend.WrappingWrapping.global.oauth.dto;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+public class GoogleRequest {
+    @Builder
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Join {
+        @Email
+        @NotNull
+        private String email;
+
+        @NotNull
+        private String name;
+
+        @NotNull
+        private String nickname;
+    }
+
+}
