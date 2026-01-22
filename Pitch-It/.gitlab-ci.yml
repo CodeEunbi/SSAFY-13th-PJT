@@ -1,0 +1,114 @@
+image: gradle:8.6-jdk21
+
+services:
+  - docker:dind
+
+variables:
+  DOCKER_HOST: tcp://docker:2375/
+  DOCKER_TLS_CERTDIR: ""
+  IMAGE_TAG: "$CI_COMMIT_SHA"
+  IMAGE_NAME: "$DOCKERHUB_USERNAME/wrapping"
+  GRADLE_OPTS: "-Xmx512m"
+
+stages:
+  - build
+  - deploy
+
+before_script:
+  - apt-get update && apt-get install -y docker.io
+  - mkdir -p Back-End/WrappingWrapping/src/main/resources
+  - echo "$DEV_YML" > Back-End/WrappingWrapping/src/main/resources/application-dev.yml
+  - chmod +x Back-End/WrappingWrapping/gradlew
+
+build:
+  stage: build
+  tags:
+    - wrapping
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "deploy/backend-v2"'
+  script:
+    - cd Back-End/WrappingWrapping
+    - ./gradlew clean build -x test --no-parallel -Dorg.gradle.jvmargs="-Xmx512m"
+    - JAR_FILE=$(ls build/libs/*.jar | head -n 1)
+    - cp "$JAR_FILE" ../../app.jar
+    - cp Dockerfile ../../Dockerfile
+    - cd ../..
+    - export DATE_TAG=$(date +"%Y%m%d-%H%M")
+    - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+    - docker build --build-arg SPRING_PROFILES_ACTIVE=dev -t $IMAGE_NAME:$DATE_TAG -t $IMAGE_NAME:latest .
+    - docker push $IMAGE_NAME:$DATE_TAG
+    - docker push $IMAGE_NAME:latest
+    - echo "DATE_TAG=$DATE_TAG" >> build_env_vars.txt
+    - docker rm -f wrapping-back || true
+  artifacts:
+    reports:
+      dotenv: build_env_vars.txt
+    paths:
+      - build_env_vars.txt
+
+deploy:
+  stage: deploy
+  tags:
+    - wrapping
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "deploy/backend-v2"'
+  dependencies:
+    - build
+  script:
+    - if [ -f build_env_vars.txt ]; then source build_env_vars.txt; else exit 1; fi
+    - mkdir -p ~/.ssh
+    - echo "$RELEASE_SSH_KEY" > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - >
+      ssh -o StrictHostKeyChecking=no ubuntu@$RELEASE_EC2_HOST "
+        docker stop wrapping-back || true &&
+        docker rm wrapping-back || true &&
+        docker pull $IMAGE_NAME:$DATE_TAG &&
+        docker run --name wrapping-back -d \
+          --network='host' \
+          -e SPRING_PROFILES_ACTIVE=dev \
+          -e TZ=Asia/Seoul \
+          $IMAGE_NAME:$DATE_TAG
+      "
+
+build-frontend:
+  stage: build
+  tags:
+    - wrapping
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "deploy/frontend-v2"'
+  script:
+    - cd Front-End/WrappingWrapping
+    - export DATE_TAG=$(date +"%Y%m%d-%H%M")
+    - echo "$DOCKERHUB_PASSWORD" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
+    - docker build -t $DOCKERHUB_USERNAME/wrapping-front:$DATE_TAG -t $DOCKERHUB_USERNAME/wrapping-front:latest .
+    - docker push $DOCKERHUB_USERNAME/wrapping-front:$DATE_TAG
+    - docker push $DOCKERHUB_USERNAME/wrapping-front:latest
+    - echo "FRONT_DATE_TAG=$DATE_TAG" > ../../front_env_vars.txt 
+  artifacts:
+    reports:
+      dotenv: front_env_vars.txt
+    paths:
+      - front_env_vars.txt
+
+deploy-frontend:
+  stage: deploy
+  tags:
+    - wrapping
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "deploy/frontend-v2"'
+  dependencies:
+    - build-frontend
+  script:
+    - if [ -f front_env_vars.txt ]; then source front_env_vars.txt; else exit 1; fi
+    - mkdir -p ~/.ssh
+    - echo "$RELEASE_SSH_KEY" > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - >
+      ssh -o StrictHostKeyChecking=no ubuntu@$RELEASE_EC2_HOST "
+        docker stop wrapping-front || true &&
+        docker rm wrapping-front || true &&
+        docker pull $DOCKERHUB_USERNAME/wrapping-front:$FRONT_DATE_TAG &&
+        docker run -d --name wrapping-front -p 3000:80 $DOCKERHUB_USERNAME/wrapping-front:$FRONT_DATE_TAG
+      "
+    

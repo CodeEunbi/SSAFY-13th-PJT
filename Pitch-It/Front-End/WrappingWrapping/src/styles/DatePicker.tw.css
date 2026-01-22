@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.react-calendar {
+  @apply w-[350px] max-w-full bg-my-black text-my-white rounded-2xl p-4;
+}
+
+/* navigation (년/월 + < > 버튼) */
+.react-calendar__navigation {
+  @apply flex mb-2 items-center justify-between gap-6;
+}
+
+.react-calendar__navigation button {
+  @apply w-10 h-10 bg-transparent text-my-white rounded-full;
+}
+
+.react-calendar__navigation button:enabled:hover {
+  @apply bg-watermelon bg-opacity-30 text-my-white;
+}
+
+/* 요일 헤더 */
+.react-calendar__month-view__weekdays {
+  @apply text-center text-base font-bold;
+}
+.react-calendar__month-view__weekdays__weekday {
+  @apply p-2 text-my-white;
+}
+.react-calendar__month-view__weekdays abbr {
+  @apply no-underline;
+}
+
+/* 날짜 타일 */
+.react-calendar__tile {
+  @apply text-center text-sm bg-transparent rounded-full;
+  height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.react-calendar__tile:enabled:hover {
+  @apply bg-watermelon bg-opacity-30;
+}
+
+.react-calendar__tile:enabled:focus {
+  @apply bg-watermelon;
+}
+
+/* 오늘 */
+.react-calendar__tile--now {
+  @apply bg-my-black border-2 border-watermelon rounded-full;
+}
+
+/* 선택된 날짜 */
+.react-calendar__tile--active {
+  @apply bg-watermelon focus:ring-0;
+}
+
+/* 지난/다음달 이어지는 날짜 흐리게 */
+.react-calendar__month-view__days__day--neighboringMonth {
+  @apply text-gray-500;
+}
+
+.react-calendar__month-view__days__day--neighboringMonth:enabled:hover,
+.react-calendar__month-view__days__day--neighboringMonth:enabled:focus,
+.react-calendar__tile--neighboringMonth:enabled:hover,
+.react-calendar__tile--neighboringMonth:enabled:focus {
+  @apply text-my-white !important;
+}
+
+.react-calendar__month-view__days__day--neighboringMonth.react-calendar__tile--active,
+.react-calendar__tile--neighboringMonth.react-calendar__tile--active {
+  @apply text-my-white !important;
+}
+
+.react-calendar button,
+.react-calendar button:focus,
+.react-calendar button:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: 50% !important;
+}
+
+.react-calendar__tile:focus,
+.react-calendar__tile:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.react-calendar__tile--active {
+  @apply bg-watermelon focus:ring-0;
+}

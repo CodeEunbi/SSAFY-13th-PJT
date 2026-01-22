@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-my-black text-my-white font-pretendard;
+    /* overflow-y: overlay; */
+
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+  }
+
+  * {
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+  }
+
+  #root {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    text-align: left !important;
+    @apply h-full w-full;
+  }
+
+  .os-theme-dark {
+    --os-handle-bg: rgb(0, 0, 0) !important;
+    --os-handle-bg-hover: rgb(252, 108, 134, 0.5) !important;
+    --os-handle-bg-active: rgb(252, 108, 134, 0.8) !important;
+  }
+
+  ::selection {
+    color: #303030;
+    background-color: rgb(240, 240, 240, 0.8);
+  }
+}

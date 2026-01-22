@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>WebRTC Meeting - Multi Peer (Dummy)</title>
+</head>
+<body>
+<h1>WebRTC 화상 회의 테스트 (다자간 더미)</h1>
+
+<div>
+    <label>Room ID: <input type="text" id="roomIdInput"></label><br>
+    <label>내 ID (myKey): <input type="text" id="myKeyInput"></label><br>
+    <label>참여자 IDs (쉼표로 구분): <input type="text" id="participantsInput" placeholder="user2,user3,..."></label><br>
+    <button onclick="startWithInput()">입장</button>
+</div>
+
+<div style="margin-top:20px;">
+    <button onclick="startCall()">Start Call</button>
+</div>
+
+<video id="localVideo" autoplay playsinline muted width="300"></video>
+
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+
+<script>
+    let stompClient;
+    let localStream;
+    let roomId = '';
+    let myKey = '';
+    let targetKeys = [];
+    const peerConnections = {}; // key: 상대방 ID
+
+    async function startWithInput() {
+        roomId = document.getElementById('roomIdInput').value;
+        myKey = document.getElementById('myKeyInput').value;
+        const rawTargets = document.getElementById('participantsInput').value;
+
+        if (!roomId || !myKey || !rawTargets) {
+            alert("모든 값을 입력해주세요.");
+            return;
+        }
+
+        targetKeys = rawTargets.split(',').map(id => id.trim()).filter(id => id !== myKey);
+        localStream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+        document.getElementById('localVideo').srcObject = localStream;
+
+        connectWebSocket();
+    }
+
+    function connectWebSocket() {
+        const socket = new SockJS('/ws');
+        stompClient = Stomp.over(socket);
+        stompClient.connect({}, async () => {
+            stompClient.subscribe(`/topic/peer/offer/${myKey}/${roomId}`, handleOffer);
+            stompClient.subscribe(`/topic/peer/answer/${myKey}/${roomId}`, handleAnswer);
+            stompClient.subscribe(`/topic/peer/iceCandidate/${myKey}/${roomId}`, handleCandidate);
+
+            // 더미로 참가자 목록 생성
+            targetKeys.forEach(target => {
+                if (target !== myKey) {
+                    createPeerConnection(target);
+                }
+            });
+        });
+    }
+
+    function createPeerConnection(targetKey) {
+        const pc = new RTCPeerConnection({
+            iceServers: [
+                {urls: 'stun:stun.l.google.com:19302'},
+                {
+                    urls: 'turn:pitch-it.co.kr:3478',
+                    username: 'wrappingwrapping',
+                    credential: 'wrapping304'
+                }
+            ]
+        });
+
+        pc.onicecandidate = event => {
+            if (event.candidate) {
+                stompClient.send(`/app/peer/iceCandidate/${targetKey}/${roomId}`, {}, JSON.stringify({
+                    sender: myKey,
+                    type: 'candidate',
+                    data: event.candidate
+                }));
+            }
+        };
+
+        pc.ontrack = event => {
+            let remoteVideo = document.getElementById(`remoteVideo-${targetKey}`);
+            if (!remoteVideo) {
+                remoteVideo = document.createElement('video');
+                remoteVideo.id = `remoteVideo-${targetKey}`;
+                remoteVideo.autoplay = true;
+                remoteVideo.playsInline = true;
+                remoteVideo.width = 300;
+                document.body.appendChild(remoteVideo);
+            }
+            remoteVideo.srcObject = event.streams[0];
+        };
+
+        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+        peerConnections[targetKey] = pc;
+    }
+
+    async function startCall() {
+        for (let targetKey in peerConnections) {
+            const pc = peerConnections[targetKey];
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            stompClient.send(`/app/peer/offer/${targetKey}/${roomId}`, {}, JSON.stringify({
+                sender: myKey,
+                type: 'offer',
+                data: offer
+            }));
+        }
+    }
+
+    async function handleOffer(message) {
+        const msg = JSON.parse(message.body);
+        if (!peerConnections[msg.sender]) {
+            createPeerConnection(msg.sender);
+        }
+        const pc = peerConnections[msg.sender];
+        await pc.setRemoteDescription(new RTCSessionDescription(msg.data));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        stompClient.send(`/app/peer/answer/${msg.sender}/${roomId}`, {}, JSON.stringify({
+            sender: myKey,
+            type: 'answer',
+            data: answer
+        }));
+    }
+
+    async function handleAnswer(message) {
+        const msg = JSON.parse(message.body);
+        const pc = peerConnections[msg.sender];
+        await pc.setRemoteDescription(new RTCSessionDescription(msg.data));
+    }
+
+    async function handleCandidate(message) {
+        const msg = JSON.parse(message.body);
+        const pc = peerConnections[msg.sender];
+        await pc.addIceCandidate(new RTCIceCandidate(msg.data));
+    }
+</script>
+</body>
+</html>
