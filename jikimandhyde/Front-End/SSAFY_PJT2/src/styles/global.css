@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-pretendard text-my-black;
+  }
+  body.is-options #root {
+    @apply h-full w-full;
+  }
+
+  html.is-popup,
+  body.is-popup {
+    width: 320px;
+    height: 250px;
+  }
+  body.is-popup {
+    display: grid;
+    place-items: center;
+    text-align: center;
+  }
+  body.is-popup #root {
+    @apply w-auto h-auto;
+  }
+  body.is-popup h1 {
+    margin: 0;
+  }
+}

@@ -1,0 +1,185 @@
+pipeline {
+    agent any
+    
+    environment {
+        GITLAB_REPO = 'https://lab.ssafy.com/s13-bigdata-dist-sub1/S13P21A207.git'
+        SERVICE_NAME = 'ai-text-service'
+        SERVICE_PATH = 'Service/ai-text-service'
+        DEPLOY_PATH = '/home/ubuntu/services/text'
+        SERVICE_PORT = '8001'
+        BRANCH_NAME = 'deploy-text'
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                echo "🔄 ${SERVICE_NAME} 소스 체크아웃 중..."
+                git branch: "${BRANCH_NAME}", 
+                    credentialsId: 'gitlab-token',
+                    url: "${GITLAB_REPO}"
+            }
+        }
+        
+        stage('Prepare Deploy Directory') {
+            steps {
+                echo "📁 배포 디렉토리 준비 중..."
+                sh '''
+                    # 배포 디렉토리 생성
+                    mkdir -p ${DEPLOY_PATH}
+                    chmod -R 755 ${DEPLOY_PATH}
+                    
+                    # 기존 파일 백업 및 정리
+                    if [ -d "${DEPLOY_PATH}/backup" ]; then
+                        rm -rf ${DEPLOY_PATH}/backup
+                    fi
+                    
+                    if [ -d "${DEPLOY_PATH}/app" ]; then
+                        mv ${DEPLOY_PATH}/app ${DEPLOY_PATH}/backup
+                    fi
+                    
+                    echo "✅ 배포 디렉토리 준비 완료"
+                '''
+            }
+        }
+        
+        stage('Copy Service Files') {
+            steps {
+                echo "📦 ${SERVICE_NAME} 파일 복사 중..."
+                sh '''
+                    # 서비스 파일 복사
+                    cp -r ${SERVICE_PATH} ${DEPLOY_PATH}/app
+                    
+                    # 권한 설정
+                    chmod -R 755 ${DEPLOY_PATH}/app
+                    
+                    # 복사된 파일 확인
+                    echo "📋 복사된 파일 목록:"
+                    ls -la ${DEPLOY_PATH}/app/
+                    
+                    echo "✅ 파일 복사 완료"
+                '''
+            }
+        }
+        
+        stage('Build Docker text') {
+            steps {
+                echo "🔨 ${SERVICE_NAME} Docker 이미지 빌드 중..."
+                sh '''
+                    cd ${DEPLOY_PATH}/app
+                    
+                    # 기존 컨테이너 중지 및 제거
+                    docker stop ${SERVICE_NAME} || true
+                    docker rm ${SERVICE_NAME} || true
+                    
+                    # 기존 이미지 제거
+                    docker rmi ${SERVICE_NAME}:latest || true
+                    
+                    # Docker 이미지 빌드
+                    docker build -t ${SERVICE_NAME}:latest .
+                    
+                    echo "✅ Docker 이미지 빌드 완료"
+                '''
+            }
+        }
+        
+        stage('Deploy Container') {
+            steps {
+                echo "🚀 ${SERVICE_NAME} 컨테이너 배포 중..."
+                sh '''
+                    cd ${DEPLOY_PATH}/app
+                    
+                    # 환경변수 파일 생성 (필요시)
+                    if [ ! -f .env ]; then
+                        cp .env.example .env || echo "SERVICE_NAME=${SERVICE_NAME}" > .env
+                    fi
+                    
+                    # Docker 컨테이너 실행
+                    docker run -d \
+                        --name ${SERVICE_NAME} \
+                        --restart unless-stopped \
+                        -p ${SERVICE_PORT}:8000 \
+                        --env-file .env \
+                        ${SERVICE_NAME}:latest
+                    
+                    echo "✅ 컨테이너 배포 완료"
+                '''
+            }
+        }
+        
+        stage('Health Check') {
+            steps {
+                echo "🏥 ${SERVICE_NAME} 헬스체크 수행 중..."
+                sh '''
+                    echo "⏳ 서비스 시작 대기 중..."
+                    sleep 30
+                    
+                    # Docker 컨테이너 상태 확인으로 헬스체크 대체
+                    if docker ps --filter name=${SERVICE_NAME} --filter status=running | grep -q ${SERVICE_NAME}; then
+                        echo "✅ ${SERVICE_NAME} 컨테이너 정상 실행 중!"
+                        
+                        # Docker 헬스체크 상태 확인 (있는 경우)
+                        health_status=$(docker inspect --format='{{.State.Health.Status}}' ${SERVICE_NAME} 2>/dev/null || echo "none")
+                        echo "Docker 헬스체크 상태: $health_status"
+                        
+                        echo "🌐 서비스 URL: http://$(curl -s ifconfig.me):${SERVICE_PORT}"
+                        echo "✅ 배포 완료 - 컨테이너가 정상 실행 중입니다"
+                        exit 0
+                    else
+                        echo "❌ 컨테이너 실행 실패"
+                        docker logs ${SERVICE_NAME} --tail=50
+                        exit 1
+                    fi
+                '''
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo "🎉 ${SERVICE_NAME} 배포 성공!"
+            sh '''
+                echo "📊 배포 완료 상태:"
+                docker ps --filter name=${SERVICE_NAME} --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}"
+                echo "🌐 서비스 접근: http://$(curl -s ifconfig.me):${SERVICE_PORT}"
+            '''
+        }
+        
+        failure {
+            echo "❌ ${SERVICE_NAME} 배포 실패!"
+            sh '''
+                echo "💥 실패 로그 수집 중..."
+                
+                # Docker 로그 출력
+                if docker ps -a --filter name=${SERVICE_NAME} --format {{.Names}} | grep -q ${SERVICE_NAME}; then
+                    echo "🔍 ${SERVICE_NAME} 컨테이너 로그:"
+                    docker logs ${SERVICE_NAME} --tail=100
+                fi
+                
+                # 시스템 상태 확인
+                echo "🔍 시스템 리소스 상태:"
+                df -h
+                free -h
+                
+                echo "🔍 Docker 상태:"
+                docker ps -a
+            '''
+        }
+        
+        always {
+            sh '''
+                # 정리 작업
+                echo "🧹 정리 작업 수행 중..."
+                
+                # 환경변수 파일 보안 삭제
+                if [ -f "${DEPLOY_PATH}/app/.env" ]; then
+                    rm -f ${DEPLOY_PATH}/app/.env
+                fi
+                
+                # 미사용 Docker 이미지 정리
+                docker image prune -f || true
+                
+                echo "✅ 정리 완료"
+            '''
+        }
+    }
+}

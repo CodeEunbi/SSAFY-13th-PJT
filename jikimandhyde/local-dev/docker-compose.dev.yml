@@ -1,0 +1,34 @@
+# /Infra/local-dev/docker-compose.dev.yml
+# 로컬 개발 환경을 위한 오버라이드 파일입니다.
+
+# version: '3.8'
+
+services:
+  fastapi-ai-image-service:
+    # 'build.context'는 main.yml의 경로를 기준으로 하므로 여기서는 덮어쓰지 않습니다.
+    volumes:
+      # 로컬 개발 환경용 볼륨 마운트
+      - ../../Service/ai-image-service/models:/app/models
+      - ../../Service/ai-image-service/logs:/app/logs
+
+  fastapi-ai-text-service:
+    volumes:
+      # 로컬 개발 환경용 볼륨 마운트
+      - ../../Service/ai-text-service/models:/app/models
+      - ../../Service/ai-text-service/logs:/app/logs
+
+  redis:
+    # Redis 포트 설정을 명확히 합니다 (main.yml과 동일하지만, 오버라이드 파일에 명시하여 관리)
+    # 호스트(내 PC)의 6380 포트를 컨테이너의 6379 포트에 연결합니다.
+    ports:
+      - "127.0.0.1:6380:6379"
+
+  common-backend:
+    # 이 서비스는 IntelliJ에서 직접 실행하므로, 컨테이너가 실행되지 않도록 합니다.
+    # 가장 간단한 방법은 'up' 명령어에서 이 서비스를 제외하는 것입니다.
+    # 만약 실수로라도 실행되는 것을 막고 싶다면 아래처럼 설정할 수 있습니다.
+    entrypoint: ["/bin/true"] # 컨테이너가 실행되자마자 즉시 종료되도록 함
+  
+  nginx:
+    # 로컬에서 사용하지 않으므로 위와 동일하게 설정합니다.
+    entrypoint: ["/bin/true"]
