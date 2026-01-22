@@ -1,0 +1,18 @@
+[
+  {"model": "books.mbti", "pk": 1, "fields": {"name": "INTJ"}},
+  {"model": "books.mbti", "pk": 2, "fields": {"name": "INTP"}},
+  {"model": "books.mbti", "pk": 3, "fields": {"name": "ENTJ"}},
+  {"model": "books.mbti", "pk": 4, "fields": {"name": "ENTP"}},
+  {"model": "books.mbti", "pk": 5, "fields": {"name": "INFJ"}},
+  {"model": "books.mbti", "pk": 6, "fields": {"name": "INFP"}},
+  {"model": "books.mbti", "pk": 7, "fields": {"name": "ENFJ"}},
+  {"model": "books.mbti", "pk": 8, "fields": {"name": "ENFP"}},
+  {"model": "books.mbti", "pk": 9, "fields": {"name": "ISTJ"}},
+  {"model": "books.mbti", "pk": 10, "fields": {"name": "ISFJ"}},
+  {"model": "books.mbti", "pk": 11, "fields": {"name": "ESTJ"}},
+  {"model": "books.mbti", "pk": 12, "fields": {"name": "ESFJ"}},
+  {"model": "books.mbti", "pk": 13, "fields": {"name": "ISTP"}},
+  {"model": "books.mbti", "pk": 14, "fields": {"name": "ISFP"}},
+  {"model": "books.mbti", "pk": 15, "fields": {"name": "ESTP"}},
+  {"model": "books.mbti", "pk": 16, "fields": {"name": "ESFP"}}
+]
