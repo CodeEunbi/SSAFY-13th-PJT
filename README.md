@@ -38,4 +38,4 @@
 
 **Collaboration**
 - Git
-- GitHub
+- Gitlab
