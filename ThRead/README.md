@@ -1,94 +1,190 @@
-# final-pjt
+# ThRead (쓰레드)
+## 독서 기록 및 공유 플랫폼
 
-독후감 작성 & AI 작가와의 대화 프로젝트
+> 책을 탐색하고, 기록하고, AI와 함께 이해하는 독서 서비스
 
+ThRead는 도서 검색부터 독서 기록 작성 및 공유, AI 챗봇을 통한 도서·작가 정보 탐색까지 하나의 서비스에서 이용할 수 있는 웹 플랫폼입니다.
 
-## Getting started
+사용자는 관심 있는 도서를 검색하거나 카테고리별로 탐색하고, 도서 및 작가 정보를 확인할 수 있습니다. 또한 읽은 책에 대한 감상평을 작성하고 다른 사용자와 공유할 수 있습니다.
+<p align="center">
+  <img src="./images/mainpage.png" width="850" alt="ThRead 메인 페이지">
+</p>
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+---
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+## 1. 프로젝트 개요
 
-## Add your files
+| 항목      | 내용                                    |
+| ------- | ------------------------------------- |
+| 프로젝트명   | ThRead                                |
+| 진행 기간   | 2025.05.22 ~ 2025.05.28               |
+| 프로젝트 유형 | SSAFY 13기 1학기 관통 프로젝트                 |
+| 팀 구성    | 2명                                    |
+| 담당 역할   | Frontend, Backend 개발                  |
+| 주요 기술   | Vue 3, JavaScript, Django, OpenAI API |
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+## 2. 프로젝트 배경
 
-```
-cd existing_repo
-git remote add origin https://lab.ssafy.com/young.yj.cho/final-pjt.git
-git branch -M master
-git push -uf origin master
-```
+SSAFY 1학기 동안 학습한 프론트엔드와 백엔드 기술을 종합적으로 활용하기 위해 진행한 프로젝트입니다.
 
-## Integrate with your tools
+제공된 요구사항 명세서를 기반으로 도서 검색, 상세 정보 조회, 독서 기록 작성 및 공유 기능을 구현했습니다.
 
-- [ ] [Set up project integrations](https://lab.ssafy.com/young.yj.cho/final-pjt/-/settings/integrations)
+기본 기능 외에도 독서 경험을 확장할 수 있도록 팀원과 추가 기능을 논의했으며, **도서와 작가에 대한 궁금증을 해결할 수 있는 AI 챗봇 기능**을 구현했습니다.
 
-## Collaborate with your team
+이를 통해 사용자가 책을 탐색하고 기록하는 과정뿐 아니라, 독서 중 궁금한 내용을 확인하는 과정까지 하나의 서비스에서 경험할 수 있도록 했습니다.
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+## 3. 주요 기능
 
-## Test and Deploy
+### 3.1 도서 검색 및 탐색
 
-Use the built-in continuous integration in GitLab.
+* 키워드를 활용한 도서 검색
+* 카테고리별 도서 탐색
+* 검색어와 카테고리를 조합한 도서 조회
+* 도서 카드 선택 시 상세 페이지 이동
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+**도서 검색 화면**
+<p align="center">
+  <img src="./images/book_search.png" width="850" alt="도서 검색 화면">
+</p>
 
-***
+### 3.2 도서 및 작가 정보 제공
 
-# Editing this README
+* 알라딘 API를 활용한 도서 정보 조회
+* 도서 상세 정보 및 작가 정보 제공
+* 해당 도서에 작성된 독서 기록 확인
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+**도서 상세 정보**
+<p align="center">
+  <img src="./images/book_info.png" width="850" alt="도서 상세 정보 화면">
+</p>
 
-## Suggestions for a good README
+**작가 정보 및 감상평**
+<p align="center">
+  <img src="./images/author_review.png" width="850" alt="작가 정보 및 감상평 화면">
+</p>
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+### 3.3 쓰레드(독서 기록) 작성 및 공유
 
-## Name
-Choose a self-explaining name for your project.
+* 도서별 독서 기록 작성
+* 제목, 내용, 읽은 날짜 입력
+* 다른 사용자가 작성한 독서 기록 열람
+* 카테고리별 독서 기록 조회
+* 마이페이지에서 작성한 기록 관리
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+**마이페이지**
+<p align="center">
+  <img src="./images/mypage.png" width="650" alt="사용자 프로필 및 작성한 쓰레드 목록">
+</p>
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+### 3.4 AI 챗봇
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+* OpenAI API 기반 도서·작가 관련 질의응답
+* 도서 상세 페이지에서 챗봇 실행
+* 도서별 대화 내역 저장 및 조회
+* AI 응답 생성 중 로딩 상태 표시
+* 실제 작가가 아닌 AI 챗봇임을 안내
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+**AI 챗봇 대화 화면**
+<p align="center">
+  <img src="./images/AI_chat_bot.png" width="850" alt="AI 챗봇 대화 화면">
+</p>
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+**AI 응답 생성 중 로딩 화면**
+<p align="center">
+  <img src="./images/answer_loading.png" width="850" alt="AI 챗봇 응답 생성 중 로딩 상태">
+</p>
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+---
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+## 4. 담당 역할
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+### 4.1 도서 목록 및 상세 페이지 구현 (Frontend)
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+Vue 3와 Bootstrap을 활용하여 도서 목록 및 상세 페이지의 레이아웃을 구현했습니다.
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+**도서 목록 페이지**
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+* 화면을 검색·카테고리 영역과 도서 목록 영역으로 구분
+* 키워드 검색 및 카테고리 선택 UI 구현
+* 검색 조건에 따른 도서 카드 표시
+* 도서 선택 시 상세 페이지로 이동
 
-## License
-For open source projects, say how it is licensed.
+**도서 상세 페이지**
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+* 도서 및 작가 정보를 한 페이지에서 확인할 수 있도록 구성
+* 해당 도서에 작성된 독서 기록 목록 표시
+* 독서 기록 상세 페이지 연결
+* AI 챗봇 접근 기능 제공
+
+### 4.2 AI 챗봇 구현 (Frontend & Backend)
+
+OpenAI API를 활용하여 도서 및 작가 관련 질문에 답변하는 AI 챗봇을 구현했습니다.
+
+**주요 구현 내용**
+
+* 챗봇 인터페이스 및 대화 화면 구현
+* OpenAI API를 활용한 응답 생성 기능 연동
+* 도서별 대화 내역 저장 및 조회
+* AI 응답 생성 중 로딩 상태 표시
+* AI 챗봇임을 명시하여 실제 작가와 구분
+
+도서마다 별도의 대화 내역을 관리하도록 구현해 사용자가 이전에 질문했던 내용을 다시 확인할 수 있도록 했습니다.
+
+또한 AI가 응답을 생성하는 동안 로딩 메시지를 표시하여 사용자가 현재 진행 상태를 알 수 있도록 구성했습니다.
+
+### 4.3 회원가입 및 로그인 기능 구현 (Backend)
+
+Django와 Django REST Framework를 활용하여 사용자 인증 및 프로필 관련 API를 구현했습니다.
+
+* 커스텀 사용자 모델 설계
+* 회원가입 및 로그인 기능 구현
+* 이름, 생년월일, MBTI, 성별 등 추가 정보 저장
+* 로그인 사용자 프로필 조회 API 구현
+* 본인을 제외한 사용자 목록 조회 API 구현
+* 인증된 사용자만 접근할 수 있도록 권한 설정
+
+### 4.4 팔로우·언팔로우 기능 구현 (Backend)
+
+사용자 간 관계를 관리하기 위해 Follow 모델을 설계하고 관련 API를 구현했습니다.
+
+* 사용자 팔로우 및 언팔로우
+* 자기 자신에 대한 팔로우 요청 차단
+* 중복 팔로우 요청 방지
+* 사용자 조회 시 팔로우 여부 및 관계 ID 반환
+
+프론트엔드에서 사용자의 팔로우 상태에 따라 화면을 표시할 수 있도록 필요한 정보를 API 응답에 포함했습니다.
+
+---
+
+## 5. UI/UX 설계 및 구현 의도
+
+| 고려한 문제                            | 적용한 방식                             |
+| --------------------------------- | ---------------------------------- |
+| 원하는 도서를 찾기 위해 여러 페이지를 이동해야 하는 불편함 | 키워드 검색과 카테고리 탐색을 한 화면에서 제공         |
+| 도서와 작가 정보를 각각 확인해야 하는 번거로움        | 도서 상세 페이지에서 도서 및 작가 정보를 함께 제공      |
+| 독서 중 궁금한 내용을 별도로 검색해야 하는 불편함      | 도서 상세 페이지에서 AI 챗봇에 바로 접근할 수 있도록 구성 |
+| AI 응답을 기다리는 동안 진행 상태를 알기 어려움      | 응답 생성 중 로딩 메시지 표시                  |
+| 이전에 나눈 대화를 다시 확인하기 어려움            | 도서별 대화 내역 저장 및 조회 기능 구현            |
+
+## 6. 기술 스택
+
+| 구분              | 기술                                        |
+| --------------- | ----------------------------------------- |
+| Frontend        | Vue 3, JavaScript, HTML, CSS, Bootstrap   |
+| Backend         | Python 3.9, Django, Django REST Framework |
+| AI              | OpenAI API                                |
+| Database        | SQLite                                    |
+| External API    | 알라딘 API                                   |
+| API Testing     | Postman                                   |
+| Database Design | dbdiagram.io                              |
+| Collaboration   | GitLab, Mattermost, Notion                |
+
+※ 프로젝트 전체 기술 스택이며, 개인적으로 프론트엔드와 백엔드 개발에 모두 참여했습니다.
+
+## 7. 프로젝트를 통해 배운 점
+
+ThRead는 프론트엔드와 백엔드를 모두 경험하며 웹 서비스의 데이터 흐름을 이해할 수 있었던 프로젝트입니다. 특히 도서 목록 및 상세 페이지를 구현하고, AI 챗봇의 화면과 API 연동 기능을 개발하면서 사용자 인터페이스와 서버 기능이 연결되는 과정을 경험했습니다.
+
+또한 2인 협업 과정에서 서로의 코드를 수정하거나 변경 사항을 충분히 공유하지 않아 혼선이 발생하기도 했습니다. 이를 통해 역할 분담과 코드 변경 사항 공유의 중요성을 배웠으며, Git과 브랜치 관리에 대한 이해도 높일 수 있었습니다.
+
+짧은 개발 기간으로 인해 기획했던 MBTI별 도서 추천 기능을 완성하지 못한 아쉬움이 남았지만, 기능의 우선순위를 정하고 제한된 일정 안에서 핵심 기능을 구현하는 경험을 쌓았습니다.
